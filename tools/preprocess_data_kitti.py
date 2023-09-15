@@ -53,21 +53,20 @@ for data_root_name in data_root_list:
     single_img_path = os.path.join(data_path,i,'image_02/data/0000000000.png')
     ori_img = cv2.imread(single_img_path)
     u,v = np.meshgrid(range(ori_img.shape[1]), range(ori_img.shape[0]), indexing='xy')
-    pe_temp = ((R_inv_T[2]-1.65)/(kr_inv[2,0]*u+kr_inv[2,1]*v+kr_inv[2,2]))
+    pe_temp = ((-1.65)/(kr_inv[2,0]*u+kr_inv[2,1]*v+kr_inv[2,2]))
     R_inv_T_dict[data_path.split('/')[-1]] = float(R_inv_T[2])
     a_dict[data_path.split('/')[-1]] = float(kr_inv[2,0]+kr_inv[2,1]+kr_inv[2,2])
 
 
-    save_path = os.path.join(data_path,'GE')
+    save_path = os.path.join(data_path,'pe')
 
     os.makedirs(save_path,exist_ok=True)
-    np.save(save_path+"/ge_165_paper.npy",pe_temp)
-    np.save(save_path+"/R_inv_T.npy",np.array(R_inv_T[2]))
-    np.save(save_path+"/a.npy",np.array(kr_inv[2,0]+kr_inv[2,1]+kr_inv[2,2]))
+    np.save(save_path+"/pe_165.npy",pe_temp)
+
 
 def find_k(gt_img, pe_img_comput,run_name):
-    a = (R_inv_T_dict[run_name]-1.65)/pe_img_comput
-    b = (1.65-R_inv_T_dict[run_name])/gt_img
+    a = (-1.65)/pe_img_comput
+    b = 1.65/gt_img
     k = b+a
     return k
 
@@ -85,12 +84,11 @@ def SingleProcessFindK(proc_id,split_txt):
 
         save_k_path = gt_path.replace('.png','.npz')
         save_k_path = save_k_path.replace('gt_depth','ground_slope')
-        pe_path = pe_path_root+"/"+split_txt[i].split(' ')[0].split('/')[0]+"/GE/ge_165_paper.npy"
+        pe_path = pe_path_root+"/"+split_txt[i].split(' ')[0].split('/')[0]+"/pe/pe_165.npy"
         gt_img = cv2.imread(gt_path,-1)/256
         valid_mask = gt_img == 0
         pe_img_comput = np.load(pe_path).astype(np.float32)
-        old_pe_path = pe_path_root+"/"+split_txt[i].split(' ')[0].split('/')[0]+"/pe/pe_165.npy"
-        old_pe_img_comput = np.load(old_pe_path).astype(np.float32)
+
         k = find_k(gt_img, pe_img_comput,split_txt[i].split(' ')[0].split('/')[0])
         run_name = split_txt[i].split(' ')[0].split('/')[0]
 
@@ -98,10 +96,6 @@ def SingleProcessFindK(proc_id,split_txt):
         k[k>5] = 5
         k[k<-5] = -5
         k[valid_mask] = 255
-        # img_color = cv2.applyColorMap((((k+5)/10)*255).astype(np.uint8), cv2.COLORMAP_JET)
-        # img_color[k==255] = [0,0,0]
-        # cv2.imwrite('/mnt/vepfs/ML/ml-users/mazhuang/GEDepth/vis_slope.png',img_color)
-
 
         os.makedirs(save_k_path.replace(save_k_path.split('/')[-1],''),exist_ok=True)
         np.savez_compressed(save_k_path, ground_slope=k)

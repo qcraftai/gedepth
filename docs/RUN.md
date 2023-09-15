@@ -21,12 +21,12 @@ bash tools/dist_train.sh configs/depthformer/depthformer_a.py 8
 ### Depthformer-Vanilla
 
 ```bash
-bash tools/dist_test.sh  configs/depthformer/depthformer-v.py  ckpt/depthformer_v.pth  8
+bash tools/dist_test.sh  configs/depthformer/depthformer_v.py  ckpt/depthformer_v.pth  8
 ```
 
 
 ### Depthformer-Adaptive
 
 ```bash
-bash tools/dist_test.sh  configs/depthformer/depthformer-a.py  ckpt/depthformer_a.pth  8
+bash tools/dist_test.sh  configs/depthformer/depthformer_a.py  ckpt/depthformer_a.pth  8
 ```
