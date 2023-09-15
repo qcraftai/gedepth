@@ -1,15 +1,9 @@
 USEPE_FLAGS = True
-USE_GT_FILTER_FLAGS = False
-USE_ConvexHull_FLAGS = False
-USE_Erode_FLAGS = False
-USE_Dilate_FLAGS = False
-USE_MASK_PE_FLAGS = False
-USE_PARAM_PE_FLAGS = True
 _base_ = [
     '../_base_/models/depthformer_swin.py',
     '../_base_/default_runtime.py'
 ]
-
+# find_unused_parameters=True
 # dataset settings
 dataset_type = 'KITTIDataset'
 data_root = 'data/kitti'
@@ -17,16 +11,12 @@ img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 crop_size= (352, 704)
 train_pipeline = [
-    dict(type='LoadImageFromFile',USEPE=USEPE_FLAGS,
-                 USE_GT_FILTER=USE_GT_FILTER_FLAGS,
-                 USE_ConvexHull=USE_ConvexHull_FLAGS,
-                 USE_Erode=USE_Erode_FLAGS,
-                 USE_Dilate=USE_Dilate_FLAGS,
-                 USE_MASK_PE=USE_MASK_PE_FLAGS,
-                 USE_PARAM_PE=USE_PARAM_PE_FLAGS),
+    dict(type='LoadImageFromFile',USEPE=USEPE_FLAGS),
     dict(type='DepthLoadAnnotations'),
     dict(type='LoadKITTICamIntrinsic'),
-    dict(type='KBCrop', depth=True),
+    dict(type='KBCrop', depth=True,pe_k=True),
+    dict(type='Resize',ratio_range=(0.5,2.0)),
+    dict(type='Padding',img_padding_value=(0,0,0),depth_padding_value=255,pe_k=True),
     dict(type='RandomRotate', prob=0.5, degree=2.5),
     dict(type='RandomFlip', prob=0.5),
     dict(type='RandomCrop', crop_size=(352, 704)),
@@ -34,22 +24,16 @@ train_pipeline = [
     dict(type='Normalize', **img_norm_cfg),
     dict(type='DefaultFormatBundle'),
     dict(type='Collect', 
-         keys=['img', 'depth_gt'],
+         keys=['img', 'depth_gt','pe_ori_point','pe_k_gt'],
          meta_keys=('filename', 'ori_filename', 'ori_shape',
                     'img_shape', 'pad_shape', 'scale_factor', 
                     'flip', 'flip_direction', 'img_norm_cfg',
                     'cam_intrinsic')),
 ]
 test_pipeline = [
-    dict(type='LoadImageFromFile',USEPE=USEPE_FLAGS,
-                 USE_GT_FILTER=USE_GT_FILTER_FLAGS,
-                 USE_ConvexHull=USE_ConvexHull_FLAGS,
-                 USE_Erode=USE_Erode_FLAGS,
-                 USE_Dilate=USE_Dilate_FLAGS,
-                 USE_MASK_PE=USE_MASK_PE_FLAGS,
-                 USE_PARAM_PE=USE_PARAM_PE_FLAGS),
+    dict(type='LoadImageFromFile',USEPE=USEPE_FLAGS),
     dict(type='LoadKITTICamIntrinsic'),
-    dict(type='KBCrop', depth=False),
+    dict(type='KBCrop', depth=False,pe_k=False),
     dict(
         type='MultiScaleFlipAug',
         img_scale=(1216, 352),
@@ -60,7 +44,7 @@ test_pipeline = [
             dict(type='Normalize', **img_norm_cfg),
             dict(type='ImageToTensor', keys=['img']),
             dict(type='Collect', 
-                 keys=['img'],
+                 keys=['img','pe_ori_point'],
                  meta_keys=('filename', 'ori_filename', 'ori_shape',
                             'img_shape', 'pad_shape', 'scale_factor', 
                             'flip', 'flip_direction', 'img_norm_cfg',
@@ -108,14 +92,21 @@ data = dict(
         max_depth=80))
 
 model = dict(
-    pretrained=None,
+    # pretrained="/mnt/vepfs/ML/Users/mazhuang/PE/Monocular-Depth-Estimation-Toolbox/pretrain/swin_large_patch4_window7_224_22k.pth",
+    pretrained = None,
     backbone=dict(
         embed_dims=192,
         depths=[2, 2, 18, 2],
         num_heads=[6, 12, 24, 48],
         window_size=7,
-        USEPE=USEPE_FLAGS,
-        USE_PARAM_PE=USE_PARAM_PE_FLAGS),
+        num_stages=0,
+        USEPE=USEPE_FLAGS
+    ),
+    dynamic_pe_backbone = None,
+    # dynamic_pe_backbone=dict(
+    #     type='HRNet',
+    #     arch='w18'
+    # ),
     neck=dict(
         type='HAHIHeteroNeck',
         positional_encoding=dict(
@@ -124,6 +115,23 @@ model = dict(
         out_channels=[64, 192, 384, 768, 1536],
         embedding_dim=512,
         scales=[1, 1, 1, 1, 1]),
+    pe_mask_neck=dict(
+        type='LightPEMASKNeck'
+    ),
+    # pe_mask_neck=dict(
+    #     type='DYNAMICPEMASKNeck',
+    #     up_sample_channels=[64, 192, 384, 768, 1536],
+    #     in_channels=[64, 192, 384, 768, 1536],
+    #     act_cfg=dict(type='LeakyReLU', inplace=True),
+    #     norm_cfg = None
+    # ),
+    # pe_mask_neck=dict(
+    #     type='PEMASKNeck',
+    #     up_sample_channels=[64, 192, 384, 768, 1536],
+    #     in_channels=[64, 192, 384, 768, 1536],
+    #     act_cfg=dict(type='LeakyReLU', inplace=True),
+    #     norm_cfg = None
+    # ),
     decode_head=dict(
         type='DenseDepthHead',
         act_cfg=dict(type='LeakyReLU', inplace=True),
@@ -151,14 +159,14 @@ optimizer = dict(
 lr_config = dict(
     policy='CosineAnnealing',
     warmup='linear',
-    warmup_iters=1600 * 8,
+    warmup_iters=16 * 1600,
     warmup_ratio=1.0 / 1000,
     min_lr_ratio=1e-8,
     by_epoch=False) # test add by_epoch false
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # runtime settings
-runner = dict(type='IterBasedRunner', max_iters=1600 * 24)
-checkpoint_config = dict(by_epoch=False, max_keep_ckpts=2, interval=1600)
+runner = dict(type='IterBasedRunner', max_iters=1600 * 48)
+checkpoint_config = dict(by_epoch=False, max_keep_ckpts=2, interval=800)
 evaluation = dict(by_epoch=False, 
                   start=0,
                   interval=800, 
@@ -168,21 +176,11 @@ evaluation = dict(by_epoch=False,
                   greater_keys=("a1", "a2", "a3"), 
                   less_keys=("abs_rel", "rmse"))
 log_config = dict(
+    _delete_=True,
     interval=10,
     hooks=[
-        dict(type="TextLoggerHook"),
-        dict(
-            type="WandbLoggerHook",
-            init_kwargs=dict(
-                project="DepthFormer Reproduct",
-                name="Param PE RGBD",
-                tags=[
-                    "8gpus",
-                ],
-                entity="mazhuang",
-            ),
-            # temporary
-            interval=1,
-        ),
-    ],
-)
+        dict(type='TextLoggerHook', by_epoch=False),
+        dict(type='TensorboardLoggerHook')
+    ])
+
+# load_from = "/mnt/vepfs/ML/Users/mazhuang/PE/Monocular-Depth-Estimation-Toolbox/work_dirs/depthformer_swinl_22k_w7_kitti_pe_random_scale_one_backbone_light_att_pemask_depthmask_3_grad_double_iter_max0/best_abs_rel_iter_65600.pth"

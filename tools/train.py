@@ -173,7 +173,7 @@ def main():
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg'))
     model.init_weights()
-    model = load_ckpt(model)
+    # model = load_ckpt(model)
 
     # NOTE: set all the bn to syncbn
     import torch.nn as nn

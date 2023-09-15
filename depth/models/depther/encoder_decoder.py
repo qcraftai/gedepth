@@ -214,7 +214,7 @@ class DepthEncoderDecoder(BaseDepther):
                         pe_mask,pe_slope_k_ori = self.dynamic_pe(x,y,img,img_metas, **kwargs)
                     return x,y,pe_mask,pe_slope_k_ori
                 else:
-                    if not self.dynamic_pe_neck_FLAGS:
+                    if False:#not self.dynamic_pe_neck_FLAGS:
                         # pe_mask,pe_slope_k_ori = self.load_pred_dynamic_pe(x,y,img,img_metas, **kwargs)
                         # return x,y,pe_mask,pe_slope_k_ori
                         pe_mask,pe_slope_k_ori = self.dynamic_attn_pe(x,y,dynamic_y,img,img_metas, **kwargs)
@@ -222,7 +222,7 @@ class DepthEncoderDecoder(BaseDepther):
                     else:
                         x_pe = img[:,3,:,:].clone()
                         x_pe = x_pe.unsqueeze(1)
-                        pe_mask = x_pe*y
+                        pe_mask = x_pe*y * 200
                         return x,y,pe_mask,None
         return x,None,None,None
 
