@@ -1109,6 +1109,18 @@ class DepthFormerSwin(BaseModule):
                         state_dict[table_key] = table_pretrained_resized.view(
                             nH2, L2).permute(1, 0).contiguous()
 
+
+            if self.USEPE:
+                model_dict = self.state_dict()
+                for name, param in state_dict.items():
+                    if name in model_dict.keys():            
+                        if model_dict[name].shape == param.shape:
+                            pass
+                        else:
+                            temp_param = torch.zeros(model_dict[name].shape)
+                            temp_param[:,0:temp_param.shape[1]-1,:,:] = param
+
+                            state_dict[name] = temp_param    
             # load state_dict
             self.load_state_dict(state_dict, False)
 

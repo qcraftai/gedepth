@@ -92,8 +92,8 @@ data = dict(
         max_depth=80))
 
 model = dict(
-    # pretrained="/mnt/vepfs/ML/Users/mazhuang/PE/Monocular-Depth-Estimation-Toolbox/pretrain/swin_large_patch4_window7_224_22k.pth",
-    pretrained = None,
+    pretrained="ckpt/swin_large_patch4_window7_224_22k.pth",
+    # pretrained = None,
     backbone=dict(
         embed_dims=192,
         depths=[2, 2, 18, 2],
