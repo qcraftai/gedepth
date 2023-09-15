@@ -102,11 +102,6 @@ model = dict(
         num_stages=0,
         USEPE=USEPE_FLAGS
     ),
-    dynamic_pe_backbone = None,
-    # dynamic_pe_backbone=dict(
-    #     type='HRNet',
-    #     arch='w18'
-    # ),
     neck=dict(
         type='HAHIHeteroNeck',
         positional_encoding=dict(
@@ -118,20 +113,7 @@ model = dict(
     pe_mask_neck=dict(
         type='LightPEMASKNeck'
     ),
-    # pe_mask_neck=dict(
-    #     type='DYNAMICPEMASKNeck',
-    #     up_sample_channels=[64, 192, 384, 768, 1536],
-    #     in_channels=[64, 192, 384, 768, 1536],
-    #     act_cfg=dict(type='LeakyReLU', inplace=True),
-    #     norm_cfg = None
-    # ),
-    # pe_mask_neck=dict(
-    #     type='PEMASKNeck',
-    #     up_sample_channels=[64, 192, 384, 768, 1536],
-    #     in_channels=[64, 192, 384, 768, 1536],
-    #     act_cfg=dict(type='LeakyReLU', inplace=True),
-    #     norm_cfg = None
-    # ),
+
     decode_head=dict(
         type='DenseDepthHead',
         act_cfg=dict(type='LeakyReLU', inplace=True),
