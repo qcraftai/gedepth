@@ -4,7 +4,7 @@ import json
 import numpy as np
 import cv2
 import multiprocessing
-
+from IPython import embed
 
 data_root_path = "data/kitti/input"
 R_inv_T_dict = dict()
@@ -17,7 +17,7 @@ for data_root_name in data_root_list:
     
     calib_cam_to_cam_path = os.path.join(data_path,'calib_cam_to_cam.txt')
     calib_velo_to_cam_path = os.path.join(data_path,'calib_velo_to_cam.txt')
-    cam_to_world_path = os.path.join(data_path,'cam_to_world.txt')
+
 
     with open(calib_cam_to_cam_path,'r') as f:
         calib_cam_to_cam = f.readlines()
@@ -35,15 +35,6 @@ for data_root_name in data_root_list:
     Tr_velo_to_cam = np.insert(velo_to_cam_R,3,values=np.array(calib_velo_to_cam[2].strip('\n').split(' ')[1:]),axis=1)
     Tr_velo_to_cam = np.insert(Tr_velo_to_cam,3,values=[0,0,0,1],axis=0)
 
-    B = R0_rect * Tr_velo_to_cam
-    R = B[:3,:3]
-    T = B[:3,3]
-    K = P2[:3,:3]
-
-    kr_inv = np.linalg.inv(R) * np.linalg.inv(K)
-
-    R_inv_T = np.linalg.inv(R) * T
-
     data_folder_list = os.listdir(data_path)
     for i in data_folder_list:
         if 'sync' in i:
@@ -52,14 +43,16 @@ for data_root_name in data_root_list:
 
     single_img_path = os.path.join(data_path,i,'image_02/data/0000000000.png')
     ori_img = cv2.imread(single_img_path)
-    u,v = np.meshgrid(range(ori_img.shape[1]), range(ori_img.shape[0]), indexing='xy')
-    pe_temp = ((-1.65)/(kr_inv[2,0]*u+kr_inv[2,1]*v+kr_inv[2,2]))
-    R_inv_T_dict[data_path.split('/')[-1]] = float(R_inv_T[2])
-    a_dict[data_path.split('/')[-1]] = float(kr_inv[2,0]+kr_inv[2,1]+kr_inv[2,2])
 
+    A = P2 * R0_rect * Tr_velo_to_cam
 
+    R_inv_T = np.linalg.inv(A[0:3,0:3])
+    T = A[0:3,3]
+    RT =  R_inv_T * T    
+    u,v = np.meshgrid(range(ori_img.shape[1]), range(ori_img.shape[0]), indexing='xy') 
+    pe_temp = (RT[2]-1.65)/(R_inv_T[2,0]*u+R_inv_T[2,1]*v+R_inv_T[2,2])
+    
     save_path = os.path.join(data_path,'pe')
-
     os.makedirs(save_path,exist_ok=True)
     np.save(save_path+"/pe_165.npy",pe_temp)
 
@@ -81,9 +74,8 @@ def SingleProcessFindK(proc_id,split_txt):
             continue
 
         gt_path = gt_path_root+"/"+split_txt[i].split(' ')[1].replace('\n','')
-
         save_k_path = gt_path.replace('.png','.npz')
-        save_k_path = save_k_path.replace('gt_depth','ground_slope')
+        save_k_path = save_k_path.replace('gt_depth','slope_range_5_5_interval_1')
         pe_path = pe_path_root+"/"+split_txt[i].split(' ')[0].split('/')[0]+"/pe/pe_165.npy"
         gt_img = cv2.imread(gt_path,-1)/256
         valid_mask = gt_img == 0
@@ -98,7 +90,7 @@ def SingleProcessFindK(proc_id,split_txt):
         k[valid_mask] = 255
 
         os.makedirs(save_k_path.replace(save_k_path.split('/')[-1],''),exist_ok=True)
-        np.savez_compressed(save_k_path, ground_slope=k)
+        np.savez_compressed(save_k_path, k_img=k)
         print("id:{} core:{} find img {}, K is: {}".format(i, proc_id, gt_path, str(np.unique(k))))
 
 def err_callback(value):

@@ -392,10 +392,9 @@ class LoadImageFromFile(object):
 
         Returns:
             numpy: pe
-        """
-        # pe_depth = (cv2.imread('data/kitti/input/'+results['ori_filename'].split('/')[0]+'/'+results['ori_filename'].split('/')[1]+'/pe.png',-1)/100).astype(np.float32)
-        # pe_depth = (cv2.imread('data/kitti/input/'+results['ori_filename'].split('/')[0]+'/pe/165.png',-1)/100).astype(np.float32)        
+        """  
         pe_depth = np.load('data/kitti/input/'+results['ori_filename'].split('/')[0]+'/pe/pe_165.npy').astype(np.float32)
+
         # Filter the non-valid value
         pe_depth[pe_depth>200] = 0
         pe_depth[pe_depth<0] = 0

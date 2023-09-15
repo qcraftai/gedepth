@@ -24,12 +24,11 @@ Please follow the instructions in [RUN](docs/RUN.md)
 
 ### Main Results
 
-| Model |  Abs_Rel | Sq Rel |  RMSE | Checkpoint | Training Logs 
-| ------| -----| ------- | ------ | -------------| --|
- | Depthformer-Vanilla | 0.049 | 0.145	| 2.063| [[Google Drive]](https://drive.google.com/drive/folders/1agPt7Nwecj3oX3S8WmF6wvxfDFddJSBA) | [[Google Drive]](https://drive.google.com/file/d/1faZ2_STjzlgfZB06EZ-_FpCjjd6_1FwN/view?usp=drive_link)
-| Depthformer-Adaptive| xx | xx| xx|[[Google Drive]]
-| BTS-Vanilla| 0.057 | 0.199| 2.476|[[Google Drive]](https://drive.google.com/drive/folders/1agPt7Nwecj3oX3S8WmF6wvxfDFddJSBA) | [[Google Drive]](https://drive.google.com/file/d/1vw_n4uAjHknEKpkXujfYpa2FYtqz-yv9/view?usp=drive_link)
-| BTS-Adaptive| xx | xx| xx| [[Google Drive]]
+| Model |  Abs_Rel | Sq Rel |  RMSE | Checkpoint | 
+| ------| -----| ------- | ------ | -------------| 
+ | Depthformer-Vanilla | 0.049 | 0.144	| 2.061| [[Google Drive]](https://drive.google.com/drive/folders/1agPt7Nwecj3oX3S8WmF6wvxfDFddJSBA) | [[Google Drive]](https://drive.google.com/file/d/1faZ2_STjzlgfZB06EZ-_FpCjjd6_1FwN/view?usp=drive_link)
+| Depthformer-Adaptive| 0.0485 | 0.142| 2.044|[[Google Drive]]
+
 
 
 

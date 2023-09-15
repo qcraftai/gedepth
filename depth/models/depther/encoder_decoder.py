@@ -133,10 +133,7 @@ class DepthEncoderDecoder(BaseDepther):
         """Run forward function and calculate loss for decode head in
         training."""
         losses = dict()
-        guidance = None
-        if not self.guidance_head is None:
-            guidance = self.guidance_head(x,pe_mask,y)
-        loss_decode = self.decode_head.forward_train(img, x, img_metas, depth_gt, self.train_cfg,pe_mask,y,guidance,pe_offset, **kwargs)
+        loss_decode = self.decode_head.forward_train(img, x, img_metas, depth_gt, self.train_cfg,pe_mask,y,pe_offset, **kwargs)
         losses.update(add_prefix(loss_decode, 'decode'))
         return losses
 

@@ -412,7 +412,7 @@ class DepthBaseDecodeHead(BaseModule, metaclass=ABCMeta):
         """Placeholder of forward function."""
         pass
 
-    def forward_train(self, img, inputs, img_metas, depth_gt, train_cfg,pe_mask,y,guidance,pe_offset, **kwargs):
+    def forward_train(self, img, inputs, img_metas, depth_gt, train_cfg,pe_mask,y,pe_offset, **kwargs):
         """Forward function for training.
         Args:
             inputs (list[Tensor]): List of multi-level img features.
@@ -433,10 +433,6 @@ class DepthBaseDecodeHead(BaseModule, metaclass=ABCMeta):
             # attn_gt = kwargs['pe_k_gt']
             # attn_gt[attn_gt!=255] = 1
             losses = self.losses_dynamic_pe(depth_pred, depth_gt, pe_offset, pe_k_gt,None,None)
-        elif self.depth2norm_flags:
-            intrinsic = kwargs['cam_intrinsic_for_normal'].to(torch.float32)
-            normals_depth = self.depth2norm(depth_pred, intrinsic, guidance)
-            losses = self.losses_bebug(depth_pred, depth_gt,normals_depth,kwargs['normals_gt'])
         else:
             losses = self.losses(depth_pred, depth_gt)
         log_imgs = self.log_images(img[0], depth_pred[0], depth_gt[0], img_metas[0])
