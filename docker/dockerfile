@@ -1,0 +1,40 @@
+FROM docker.io/nvidia/cuda:11.3.0-devel-ubuntu20.04
+
+RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y ffmpeg libsm6 libxext6
+
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+# Install basics
+RUN apt-get update
+RUN apt install -y wget vim tmux htop git libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev
+
+ENV CONDA_DIR /opt/conda
+
+RUN wget --quiet \
+https://repo.anaconda.com/archive/Anaconda3-2021.11-Linux-x86_64.sh && \
+/bin/bash ./Anaconda3-2021.11-Linux-x86_64.sh -b -p /opt/conda && \
+rm ./Anaconda3-2021.11-Linux-x86_64.sh
+
+ENV PATH=$CONDA_DIR/bin:$PATH
+
+RUN /opt/conda/bin/conda install pytorch torchvision cudatoolkit=11.3 -c pytorch
+
+RUN /opt/conda/bin/pip install torch-scatter -f \
+https://data.pyg.org/whl/torch-1.11.0+cu113.html
+
+Run /opt/conda/bin/pip install hydra-core numba
+Run /opt/conda/bin/pip install spconv-cu113
+
+Run /opt/conda/bin/pip install mmdet==2.22.0
+Run /opt/conda/bin/pip install mmsegmentation==0.20.2
+
+Run /opt/conda/bin/pip install mmcv-full==1.4.2 -f \
+https://download.openmmlab.com/mmcv/dist/cu111/torch1.9.0/index.html
+
+Run /opt/conda/bin/pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 \
+torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
+
+RUN git clone https://github.com/zhyever/Monocular-Depth-Estimation-Toolbox.git
+RUN bash -c 'cd Monocular-Depth-Estimation-Toolbox' && \
+/opt/conda/bin/pip3 install -e /Monocular-Depth-Estimation-Toolbox
+RUN /opt/conda/bin/pip install future tensorboard
+RUN /opt/conda/bin/pip install opencv-python matplotlib PrettyTable IPython open3d
