@@ -26,8 +26,8 @@ Please follow the instructions in [RUN](docs/RUN.md)
 
 | Model |  Abs_Rel | Sq Rel |  RMSE | Checkpoint | 
 | ------| -----| ------- | ------ | -------------| 
- | Depthformer-Vanilla | 0.049 | 0.144	| 2.061| [[Google Drive]](https://drive.google.com/drive/folders/1XQRl7AtSBBIPoXtZOh87M_LG0iAJPDl_?usp=sharing)
-| Depthformer-Adaptive| 0.048 | 0.142| 2.044|[[Google Drive]](https://drive.google.com/drive/folders/1XQRl7AtSBBIPoXtZOh87M_LG0iAJPDl_?usp=sharing)
+ | Depthformer-Vanilla | 0.049 | 0.144	| 2.061| [[Google Drive]](https://drive.google.com/drive/folders/1XQRl7AtSBBIPoXtZOh87M_LG0iAJPDl_?usp=sharing)[[Baidu Cloud]](https://pan.baidu.com/s/1bzFoxx_uFrcmx3uUNc03HQ?pwd=rjt1 )
+| Depthformer-Adaptive| 0.048 | 0.142| 2.044|[[Google Drive]](https://drive.google.com/drive/folders/1XQRl7AtSBBIPoXtZOh87M_LG0iAJPDl_?usp=sharing)[[Baidu Cloud]](https://pan.baidu.com/s/1bzFoxx_uFrcmx3uUNc03HQ?pwd=rjt1 )
 
 
 
