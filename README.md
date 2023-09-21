@@ -23,7 +23,7 @@ Please follow the instructions in [RUN](docs/RUN.md).
 
 DepthFormer is used here as the baseline to exemplify the improvement by the proposed GEDepth. Please refer to the paper for more results, in particular, on the generalization enhancement. 
 
--KITTI
+* KITTI
 
 | Model |  Abs Rel | Sq Rel |  RMSE | Checkpoint | 
 | ------| -----| ------- | ------ | -------------| 
