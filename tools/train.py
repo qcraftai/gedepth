@@ -64,44 +64,23 @@ def parse_args():
 
 def load_ckpt(model):
     pretrained_state = torch.load("pretrain/pe_checkpoint.pth", map_location='cpu')
-    # slope_state = torch.load('/home/mazhuang/workspace/PE/work_dirs/depthformer_swinl_22k_w7_kitti_dynamic_pe_light_att_with_ignore_smooth_pe_with_ignore_two_branch/best_abs_rel_iter_62400.pth', map_location='cpu')['state_dict']
 
     model_dict = model.state_dict()
     for name, param in pretrained_state.items():
         if not 'backbone' in name:
             continue
-        # name = 'backbone.'+name
         if name in model_dict.keys():            
             if model_dict[name].shape == param.shape:
                 model_dict[name].copy_(param)
             else:
                 temp_param = torch.zeros(model_dict[name].shape)
                 temp_param[:,0:temp_param.shape[1]-1,:,:] = param
-                # try:
-                #     temp_param[:,0:temp_param.shape[1]-1,:,:] = param
-                # except:
-                #     try:
-                #         temp_param[0:temp_param.shape[0]-1,0:temp_param.shape[1]-1,:,:] = param
-                #     except:
-                #         temp_param[0:temp_param.shape[0]-1] = param
                 model_dict[name].copy_(temp_param)
         else:
             print("Missing Key:{}".format(name))
-
-    # for name, param in slope_state.items():
-    #     if "backbone" in name:
-    #         model_dict[name].copy_(param)
-        # if "decode_head" in name or 'pe_mask_neck' in name:
-        #     print('skip: ',name)
-        #     continue
-        # model_dict[name].copy_(param)
     return model
 
 def main():
-    # import wandb
-    # wandb_key = "9914c011f2f4b8c885948776481ae3f788853382"  # mazhuang
-    # wandb.login(key=wandb_key)
-    # assert (wandb_key is not None)
     args = parse_args()
 
     cfg = Config.fromfile(args.config)
@@ -173,7 +152,7 @@ def main():
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg'))
     model.init_weights()
-    # model = load_ckpt(model)
+    model = load_ckpt(model)
 
     # NOTE: set all the bn to syncbn
     import torch.nn as nn
@@ -183,13 +162,6 @@ def main():
     logger.info(model)
 
     datasets = [build_dataset(cfg.data.train)]
-    # embed()
-    # exit()
-    # dataset = datasets[0]
-    # for i in range(200):
-    #     cv2.imwrite('./scale_img.png',dataset[i]['img'].data.numpy().transpose(1,2,0)[:,:,:3].astype(np.uint8))
-    #     embed()
-    # exit()
     if len(cfg.workflow) == 2:
         val_dataset = copy.deepcopy(cfg.data.val)
         val_dataset.pipeline = cfg.data.train.pipeline

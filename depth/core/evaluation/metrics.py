@@ -74,7 +74,7 @@ def eval_metrics(gt, pred, min_depth=1e-3, max_depth=80):
                 silog=silog, sq_rel=sq_rel)
 
 
-def pre_eval_to_metrics(pre_eval_results,eval_chamfer):
+def pre_eval_to_metrics(pre_eval_results):
 
     # convert list of tuples to tuple of lists, e.g.
     # [(A_1, B_1, C_1, D_1), ...,  (A_n, B_n, C_n, D_n)] to
@@ -91,11 +91,6 @@ def pre_eval_to_metrics(pre_eval_results,eval_chamfer):
     ret_metrics['rmse_log'] = np.nanmean(pre_eval_results[6])
     ret_metrics['silog'] = np.nanmean(pre_eval_results[7])
     ret_metrics['sq_rel'] = np.nanmean(pre_eval_results[8])
-    if eval_chamfer:
-        ret_metrics['chamfer'] = np.nanmean(pre_eval_results[9])
-        ret_metrics['precision'] = np.nanmean(pre_eval_results[10])
-        ret_metrics['recall'] = np.nanmean(pre_eval_results[11])
-        ret_metrics['F_score'] = np.nanmean(pre_eval_results[12])
 
     ret_metrics = {
         metric: value

@@ -146,8 +146,7 @@ class KITTIDataset(Dataset):
                  min_depth=1e-3,
                  max_depth=80,
                  mask_pe = False,
-                 mask_pe_gt = False,
-                 eval_chamfer=False):
+                 mask_pe_gt = False):
 
         self.pipeline = Compose(pipeline)
         self.img_dir = img_dir
@@ -166,7 +165,6 @@ class KITTIDataset(Dataset):
         self.iou_over_75_list = []
         self.RMSE = RMSEEvaluator()
         self.acc = AccuracyEvaluator()
-        self.eval_chamfer = eval_chamfer
 
         # join paths if data_root is specified
         if self.data_root is not None:
@@ -174,8 +172,8 @@ class KITTIDataset(Dataset):
                 self.img_dir = osp.join(self.data_root, self.img_dir)
             if not (self.ann_dir is None or osp.isabs(self.ann_dir)):
                 self.ann_dir = osp.join(self.data_root, self.ann_dir)
-            if not (self.split is None or osp.isabs(self.split)):
-                self.split = osp.join(self.data_root, self.split)
+            # if not (self.split is None or osp.isabs(self.split)):
+            #     self.split = osp.join(self.data_root, self.split)
 
         # load annotations
         self.img_infos = self.load_annotations(self.img_dir, self.ann_dir, self.split)
@@ -549,62 +547,6 @@ class KITTIDataset(Dataset):
 
             # save prediction results
             pre_eval_preds.append(pred)
-            if self.eval_chamfer:
-                # chamfer distance, precision, recall, F-score
-                # 1. generate 3d points
-                B,h,w = pred.shape
-                back_project_depth = BackprojectDepth(B, h, w)
-                back_project_depth.eval()
-                K = self.cam_k[self.img_infos[index]['filename'].split('/')[-5]]
-                K = self.kb_intr(K,kh,kw)
-                K = torch.from_numpy(K.astype(np.float32)).to(torch.cuda.current_device()).unsqueeze(0)
-                pred = torch.from_numpy(pred).to(torch.cuda.current_device())
-                depth_map_gt = torch.from_numpy(depth_map_gt).to(torch.cuda.current_device())
-                inv_K = torch.linalg.inv(K)
-                gt_points = back_project_depth(depth=depth_map_gt, inv_K=inv_K)[:, :3, :]
-                gt_points = gt_points.permute(0, 2, 1)
-                pred_points = back_project_depth(depth=pred, inv_K=inv_K)[:, :3, :]
-                pred_points = pred_points.permute(0, 2, 1)
-                mask_3d = (gt_points[:, :, 2] > 0).squeeze(0)
-                gt_points = gt_points[:, mask_3d, :]
-                pred_points = pred_points[:, mask_3d, :]
-
-                # 2.compute distance from a single point to points set
-                batch_size_ = int(gt_points.shape[1]/6)
-                # gt2pred,pred2gt = None,None
-                chamfer_final,precision_final,recall_final,F_score_final = 0,0,0,0
-                for batch_index in range(6):
-                    if batch_index == 5:
-                        gt2pred,pred2gt, _, _ = self.points_set_distance(
-                            src=gt_points[:,batch_size_*batch_index:,:],
-                            dst=pred_points[:,batch_size_*batch_index:,:],
-                            criterion_mode="l2",
-                        )
-                    else:
-                        gt2pred,pred2gt, _, _ = self.points_set_distance(
-                            src=gt_points[:,batch_size_*batch_index:batch_size_*(batch_index+1),:],
-                            dst=pred_points[:,batch_size_*batch_index:batch_size_*(batch_index+1),:],
-                            criterion_mode="l2",
-                        )
-                    thre1 = 0.1
-                    chamfer = torch.mean(gt2pred) + torch.mean(pred2gt)
-                    # 4.Precision
-                    precision = (pred2gt < thre1).sum() / pred2gt.numel()
-                    # 5.Recall
-                    recall = (gt2pred < thre1).sum() / gt2pred.numel()
-                    # 6.F-score
-                    F_score = 2 * precision * recall / (precision + recall + 1e-7)
-
-                    chamfer_final +=chamfer
-                    precision_final +=precision
-                    recall_final +=recall
-                    F_score_final +=F_score
-                eval = eval+(
-                    (chamfer_final/6).cpu().numpy(),
-                    (precision_final/6).cpu().numpy(),
-                    (recall_final/6).cpu().numpy(),
-                    (F_score_final/6).cpu().numpy()
-                )
             pre_eval_results.append(eval)
 
         return pre_eval_results, pre_eval_preds
@@ -625,9 +567,7 @@ class KITTIDataset(Dataset):
         # self.RMSE.rmse = []
         # self.acc.tp=0
         # self.acc.total = 0
-        metric = ["a1", "a2", "a3", "abs_rel", "rmse", "log_10", "rmse_log", "silog", "sq_rel",
-                "chamfer","precision","recall","F_score"
-        ]
+        metric = ["a1", "a2", "a3", "abs_rel", "rmse", "log_10", "rmse_log", "silog", "sq_rel"]
         eval_results = {}
         # test a list of files
         if mmcv.is_list_of(results, np.ndarray) or mmcv.is_list_of(
@@ -639,7 +579,7 @@ class KITTIDataset(Dataset):
 
         # test a list of pre_eval_results
         else:
-            ret_metrics = pre_eval_to_metrics(results,self.eval_chamfer)
+            ret_metrics = pre_eval_to_metrics(results)
         
         ret_metric_names = []
         ret_metric_values = []
@@ -647,10 +587,8 @@ class KITTIDataset(Dataset):
             ret_metric_names.append(ret_metric)
             ret_metric_values.append(ret_metric_value)
 
-        if self.eval_chamfer:
-            eval_num = 13
-        else:
-            eval_num = 9
+
+        eval_num = 9
         num_table = len(ret_metrics) // eval_num
         for i in range(num_table):
             names = ret_metric_names[i*eval_num: i*eval_num + eval_num]

@@ -51,7 +51,6 @@ for data_root_name in data_root_list:
     RT =  R_inv_T * T    
     u,v = np.meshgrid(range(ori_img.shape[1]), range(ori_img.shape[0]), indexing='xy') 
     pe_temp = (RT[2]-1.65)/(R_inv_T[2,0]*u+R_inv_T[2,1]*v+R_inv_T[2,2])
-    
     save_path = os.path.join(data_path,'pe')
     os.makedirs(save_path,exist_ok=True)
     np.save(save_path+"/pe_165.npy",pe_temp)

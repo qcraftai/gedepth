@@ -7,7 +7,6 @@ __pycache__/
 
 # Distribution / packaging
 vidar
-*.txt
 log_vis/
 point-cloud*/
 *.ply

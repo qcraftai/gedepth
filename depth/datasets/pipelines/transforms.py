@@ -7,7 +7,7 @@ from depth.ops import resize
 from ..builder import PIPELINES
 from numpy.core.fromnumeric import shape
 from mmcv.utils import deprecated_api_warning
-
+import cv2
 
 @PIPELINES.register_module()
 class Normalize(object):
@@ -21,10 +21,11 @@ class Normalize(object):
         to_rgb (bool): Whether to convert the image from BGR to RGB,
             default is true.
     """
-    def __init__(self, mean, std, to_rgb=True):
+    def __init__(self, mean, std, depth_scale=200, to_rgb=True):
         self.mean = np.array(mean, dtype=np.float32)
         self.std = np.array(std, dtype=np.float32)
         self.to_rgb = to_rgb
+        self.depth_scale = depth_scale
 
     def __call__(self, results):
         """Call function to normalize images.
@@ -40,7 +41,7 @@ class Normalize(object):
         if img_pe.shape[-1] == 5:
             img = img_pe[:,:,0:3].copy().astype(np.uint8)
             pe =  img_pe[:,:,3].copy()
-            pe[pe>0] = pe[pe>0] / 200
+            pe[pe>0] = pe[pe>0] / self.depth_scale
             pe_comput = img_pe[:,:,4].copy()
             rgb = mmcv.imnormalize(img, self.mean, self.std, self.to_rgb)
             img_pe = np.concatenate([rgb,pe[:,:,None]],axis=-1)
@@ -62,11 +63,13 @@ class Normalize(object):
 
 @PIPELINES.register_module()
 class Padding(object):
-    def __init__(self, img_padding_value,depth_padding_value,normals=False,pe_k=False):
+    def __init__(self, img_padding_value,depth_padding_value,normals=False,pe_k=False,ori_h=352,ori_w=1216):
         self.img_padding_value = img_padding_value
         self.depth_padding_value = depth_padding_value
         self.normals = normals
         self.pe_k = pe_k
+        self.ori_h = ori_h
+        self.ori_w = ori_w
     def __call__(self, results):
         image = results['img'].copy()
         depth = results['depth_gt'].copy()
@@ -77,13 +80,13 @@ class Padding(object):
         image_dtype = image.dtype
         depth_dtype = depth.dtype
         img_h,img_w,_ = image.shape
-        if img_h < 352 or img_w < 1216:
-            new_img = np.zeros((352,1216,5)).astype(image_dtype)
-            new_depth = np.zeros((352,1216)).astype(depth_dtype)
+        if img_h < self.ori_h or img_w < self.ori_w:
+            new_img = np.zeros((self.ori_h,self.ori_w,5)).astype(image_dtype)
+            new_depth = np.zeros((self.ori_h,self.ori_w)).astype(depth_dtype)
             if self.normals:
-                new_normals = np.zeros((352,1216,3)).astype(normals_dtype)
-            h_off = random.randint(0, 352-img_h)
-            w_off = random.randint(0, 1216-img_w)
+                new_normals = np.zeros((self.ori_h,self.ori_w,3)).astype(normals_dtype)
+            h_off = random.randint(0, self.ori_h-img_h)
+            w_off = random.randint(0, self.ori_w-img_w)
             new_img[h_off:h_off + img_h, w_off:w_off + img_w] = image
             new_depth[h_off:h_off + img_h, w_off:w_off + img_w] = depth
             if self.normals:
@@ -96,7 +99,7 @@ class Padding(object):
             if self.pe_k:
                 pe_k_gt = results['pe_k_gt'].copy()
                 pe_k_gt_dtype = pe_k_gt.dtype
-                new_pe_k = 255 + np.zeros((352,1216)).astype(pe_k_gt_dtype)
+                new_pe_k = 255 + np.zeros((self.ori_h,self.ori_w)).astype(pe_k_gt_dtype)
                 new_pe_k[h_off:h_off + img_h, w_off:w_off + img_w] = pe_k_gt
                 results['pe_k_gt'] = new_pe_k
             # for key in results.get('depth_fields', []):
@@ -685,6 +688,8 @@ class Resize(object):
                                          results['scale'],
                                          interpolation='nearest')
             results[key] = gt_depth
+
+            # print(key,': ',results[key].shape)
             
     
     def _resize_normals(self, results):
@@ -725,3 +730,56 @@ class Resize(object):
                      f'ratio_range={self.ratio_range}, '
                      f'keep_ratio={self.keep_ratio})')
         return repr_str
+
+
+@PIPELINES.register_module()
+class DDADResize(object):
+    
+    def __init__(self, shape,depth=True,USE_DYNAMIC_PE=False):
+        self.shape = shape
+        self.depth = depth
+        self.USE_DYNAMIC_PE = USE_DYNAMIC_PE
+    def __call__(self, results):
+        img_pe = results['img']
+        if img_pe.shape[-1] == 5:
+            img = img_pe[:,:,0:3].copy().astype(np.uint8)
+            pe =  img_pe[:,:,3].copy().astype(np.float32)
+            pe_comput =  img_pe[:,:,4].copy().astype(np.float32)
+            img = cv2.resize(img, dsize=self.shape[::-1],interpolation=cv2.INTER_AREA)
+            pe = cv2.resize(pe, dsize=self.shape[::-1],interpolation=cv2.INTER_NEAREST)
+            pe_comput = cv2.resize(pe_comput, dsize=self.shape[::-1],interpolation=cv2.INTER_NEAREST)
+            img_pe = np.concatenate([img,pe[:,:,None]],axis=-1).astype(np.float32)
+            results['img'] = np.concatenate([img_pe,pe_comput[:,:,None]],axis=-1).astype(np.float32)
+        else:
+            results['img'] = cv2.resize(img_pe, dsize=self.shape[::-1],interpolation=cv2.INTER_AREA)
+        if self.depth:
+            depth = results['depth_gt']
+            h, w = depth.shape
+            x = depth.reshape(-1)
+            uv = np.mgrid[:h, :w].transpose(1, 2, 0).reshape(-1, 2)
+            idx = x > 0
+            crd, val = uv[idx], x[idx]
+            crd[:, 0] = (crd[:, 0] * (self.shape[0] / h)).astype(np.int32)
+            crd[:, 1] = (crd[:, 1] * (self.shape[1] / w)).astype(np.int32)
+            idx = (crd[:, 0] < self.shape[0]) & (crd[:, 1] < self.shape[1])
+            crd, val = crd[idx], val[idx]
+            depth = np.zeros(self.shape)
+            depth[crd[:, 0], crd[:, 1]] = val
+            results['depth_gt'] = depth
+            if self.USE_DYNAMIC_PE:
+                pe_k_gt = results['pe_k_gt']
+                h, w = pe_k_gt.shape
+                x = pe_k_gt.reshape(-1)
+                uv = np.mgrid[:h, :w].transpose(1, 2, 0).reshape(-1, 2)
+                idx = x > 0
+                crd, val = uv[idx], x[idx]
+                crd[:, 0] = (crd[:, 0] * (self.shape[0] / h)).astype(np.int32)
+                crd[:, 1] = (crd[:, 1] * (self.shape[1] / w)).astype(np.int32)
+                idx = (crd[:, 0] < self.shape[0]) & (crd[:, 1] < self.shape[1])
+                crd, val = crd[idx], val[idx]
+                pe_k_gt = np.zeros(self.shape)
+                pe_k_gt[crd[:, 0], crd[:, 1]] = val
+                results['pe_k_gt'] = pe_k_gt
+        return results
+
+

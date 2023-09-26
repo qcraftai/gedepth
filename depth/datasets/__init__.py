@@ -7,7 +7,8 @@ from .cityscapes import CSDataset
 from .nuscenes import NUSCENESDataset
 from .builder import DATASETS, PIPELINES, build_dataloader, build_dataset
 from .nyu_binsformer import NYUBinFormerDataset
+from .ddad import DDADDataset
 
 __all__ = [
-    'NUSCENESDataset','KITTIDataset', 'NYUDataset', 'SUNRGBDDataset', 'CustomDepthDataset', 'CSDataset', 'NYUBinFormerDataset'
+    'DDADDataset','NUSCENESDataset','KITTIDataset', 'NYUDataset', 'SUNRGBDDataset', 'CustomDepthDataset', 'CSDataset', 'NYUBinFormerDataset'
 ]

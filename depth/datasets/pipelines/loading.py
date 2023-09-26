@@ -10,6 +10,7 @@ from functools import reduce
 import operator
 import math
 # import open3d as o3d
+import os
 
 
 def gen_rgb(value, minimum=0, maximum=255):
@@ -449,32 +450,12 @@ class LoadImageFromFile(object):
         
         # pe_mask_val = (cv2.imread('/mnt/vepfs/ML/Users/mazhuang/PE/Monocular-Depth-Estimation-Toolbox/work_dirs/maskpe_baseline_CE_Ignore_HRnet/kitti_val/'+results['ori_filename'].split('/')[0]+'_'+results['ori_filename'].split('/')[1]+'_image_02_data_'+results['ori_filename'].split('/')[-1],-1)/255).astype(np.float32)        
         pe_mask_val = (cv2.imread('/mnt/vepfs/ML/Users/mazhuang/PE/Monocular-Depth-Estimation-Toolbox/work_dirs/maskpe_baseline_CE_weight_backup/kitti_val_11200_518/'+results['ori_filename'].split('/')[0]+'_'+results['ori_filename'].split('/')[1]+'_image_02_data_'+results['ori_filename'].split('/')[-1],-1)/255).astype(np.float32)        
-        # temp_pe_mask = pe_mask_val
         height = pe_depth.shape[0]
         width = pe_depth.shape[1]
         top_margin = int(height - 352)
         left_margin = int((width - 1216) / 2)
         temp_pe_mask = np.zeros_like(pe_depth).astype(np.uint8)
         temp_pe_mask[top_margin: top_margin + 352, left_margin: left_margin + 1216] = pe_mask_val
-        
-        # gt_mask = (cv2.imread('/mnt/vepfs/ML/Users/mazhuang/Monocular-Depth-Estimation-Toolbox/work_dirs/maskpe_baseline_CE_WEIGHT_Dilate_Erode/kitti_val_gt/'+results['ori_filename'].split('/')[0]+'_'+results['ori_filename'].split('/')[1]+'_image_02_data_'+results['ori_filename'].split('/')[-1],-1)/255).astype(np.float32)
-        # temp_pe_mask = np.logical_and(gt_mask,temp_pe_mask)
-        # temp_pe_mask = gt_mask-temp_pe_mask
-        # temp_pe_mask = gt_mask.copy()
-        # cv2.imwrite('./pe_mask777.png',temp_pe_mask*255)
-        # edged = self.auto_canny(temp_pe_mask)
-        # temp_index = np.where(temp_pe_mask==1)
-        # points = []
-        # for i in range(len(temp_index[0])):
-        #     points.append((temp_index[1][i],temp_index[0][i]))
-        # scal_data = self.create_equal_ratio_points(points, 0.9, (np.mean(temp_index[1]),np.mean(temp_index[0])))
-        # temp_pe_mask = self.point2area(scal_data, np.zeros_like(edged), [254])
-        # temp_pe_mask_vis = self.point2area(scal_data, edged, [254])
-
-        # cv2.imwrite('./pe_mask_dilate777.png',temp_pe_mask*255)
-        # cv2.imwrite('./pe_mask_gt777.png',gt_mask*255)
-        # return pe_depth*((temp_pe_mask/255).astype(np.uint8))
-        # return pe_depth*temp_pe_mask
         new_mask = np.zeros_like(pe_depth)
         return pe_depth*new_mask
 
@@ -754,4 +735,246 @@ class DepthLoadNuScenesAnnotations(object):
     def __repr__(self):
         repr_str = self.__class__.__name__
         repr_str += f"imdecode_backend='{self.imdecode_backend}')"
+        return repr_str
+
+
+
+@PIPELINES.register_module()
+class DDADDepthLoadAnnotations(object):
+    """Load annotations for depth estimation.
+
+    Args:
+        file_client_args (dict): Arguments to instantiate a FileClient.
+            See :class:`mmcv.fileio.FileClient` for details.
+            Defaults to ``dict(backend='disk')``.
+        imdecode_backend (str): Backend for :func:`mmcv.imdecode`. Default:
+            'pillow'
+    """
+    def __init__(self, USE_DYNAMIC_PE = False,
+                 file_client_args=dict(backend='disk'),
+                 imdecode_backend='pillow'):
+        self.file_client_args = file_client_args.copy()
+        self.file_client = None
+        self.imdecode_backend = imdecode_backend
+        self.USE_DYNAMIC_PE = USE_DYNAMIC_PE
+        
+
+    def __call__(self, results):
+        """Call function to load multiple types annotations.
+
+        Args:
+            results (dict): Result dict from :obj:`depth.CustomDataset`.
+
+        Returns:
+            dict: The dict contains loaded depth estimation annotations.
+        """
+
+        if self.file_client is None:
+            self.file_client = mmcv.FileClient(**self.file_client_args)
+
+        filename = results['ann_info']['depth_map']
+
+        # depth_gt = np.asarray(Image.open(filename),
+        #                       dtype=np.float32) / results['depth_scale']
+        depth_gt = np.load(filename)['depth']
+
+        results['depth_gt'] = depth_gt
+        results['depth_ori_shape'] = depth_gt.shape
+        results['depth_fields'].append('depth_gt')
+
+        if self.USE_DYNAMIC_PE:
+            pe_k_gt = np.load(filename.replace('depth_val','depth').replace('.npz','_slope_public_debug.npz'))['k_img'].astype(np.float32)
+            valid_mask = pe_k_gt==255
+            pe_k_gt = pe_k_gt+5
+            pe_k_gt[valid_mask] = 255
+            results['pe_k_gt'] = pe_k_gt.astype(np.float32)
+            results['depth_fields'].append('pe_k_gt')
+
+        # print('depth_gt_ori: ',depth_gt.shape)
+        # print('k_ori: ',pe_k_gt.shape)
+        return results
+
+    def __repr__(self):
+        repr_str = self.__class__.__name__
+        repr_str += f"imdecode_backend='{self.imdecode_backend}')"
+        return repr_str
+
+
+@PIPELINES.register_module()
+class LoadDDADImageFromFile(object):
+    """Load an image from file.
+
+    Required keys are "img_prefix" and "img_info" (a dict that must contain the
+    key "filename"). Added or updated keys are "filename", "img", "img_shape",
+    "ori_shape" (same as `img_shape`), "pad_shape" (same as `img_shape`),
+    "scale_factor" (1.0) and "img_norm_cfg" (means=0 and stds=1).
+
+    Args:
+        to_float32 (bool): Whether to convert the loaded image to a float32
+            numpy array. If set to False, the loaded image is an uint8 array.
+            Defaults to False.
+        color_type (str): The flag argument for :func:`mmcv.imfrombytes`.
+            Defaults to 'color'.
+        file_client_args (dict): Arguments to instantiate a FileClient.
+            See :class:`mmcv.fileio.FileClient` for details.
+            Defaults to ``dict(backend='disk')``.
+        imdecode_backend (str): Backend for :func:`mmcv.imdecode`. Default:
+            'cv2'
+    """
+    def __init__(self,
+                 to_float32=False,
+                 color_type='color',
+                 file_client_args=dict(backend='disk'),
+                 imdecode_backend='cv2',
+                 USEPE=False,
+                 USE_DYNAMIC_PE=False):
+        self.to_float32 = to_float32
+        self.color_type = color_type
+        self.file_client_args = file_client_args.copy()
+        self.file_client = None
+        self.imdecode_backend = imdecode_backend
+        self.USEPE = USEPE
+        self.USE_DYNAMIC_PE = USE_DYNAMIC_PE
+
+    def concat_pe_rgb(self,pe_depth,img):
+        """Call functions to concat pe and image.
+
+        Args:
+            pe_depth (numpy): PE
+            img (numpy): RGB
+
+        Returns:
+            numpy: concated image,RGBPE=(H,W,4)
+        """
+        return np.concatenate((img,np.expand_dims(pe_depth, -1)), axis=-1)
+
+    def load_pe(self,results):
+        """Call functions to load pe.
+
+        Args:
+            results (dict): Result dict from :obj:`mmseg.CustomDataset`.
+
+        Returns:
+            numpy: pe
+        """
+        filename = results['ann_info']['depth_map'].split('/')[-2]
+        pe_path = os.path.join('data/DDAD/pe_public_debug',filename+'/ddad_pe.npz')
+        pe_depth = np.load(pe_path)['pe']
+        pe_depth[pe_depth>250] = 0
+        pe_depth[pe_depth<0] = 0
+        return pe_depth
+
+    def load_pe_comput(self,results):
+        """Call functions to load pe.
+
+        Args:
+            results (dict): Result dict from :obj:`mmseg.CustomDataset`.
+
+        Returns:
+            numpy: pe
+        """
+        # # filename = results['ann_info']['depth_map'].split('/')[-2]
+        # # pe_path = os.path.join('/home/mazhuang/workspace/PE/data/ddad/ddad_train_val/pe',filename+'/ddad_pe.npz')
+        # filename = results['ann_info']['depth_map'].replace('.npz','_pe.npz')
+        # pe_depth = np.load(filename)['pe']
+        filename = results['ann_info']['depth_map'].split('/')[-2]
+        pe_path = os.path.join('data/DDAD/pe_public_debug',filename+'/ddad_pe.npz')
+        pe_depth = np.load(pe_path)['pe']
+
+        # pe_depth[np.isnan(pe_depth)]=0
+        # pe_depth[np.isinf(pe_depth)]=500
+
+        return pe_depth
+
+    def __call__(self, results):
+        """Call functions to load image and get image meta information.
+
+        Args:
+            results (dict): Result dict from :obj:`mmseg.CustomDataset`.
+
+        Returns:
+            dict: The dict contains loaded image and meta information.
+        """
+
+        if self.file_client is None:
+            self.file_client = mmcv.FileClient(**self.file_client_args)
+
+        if results.get('img_prefix') is not None:
+            filename = osp.join(results['img_prefix'],
+                                results['img_info']['filename'])
+        else:
+            filename = results['img_info']['filename']
+        img_bytes = self.file_client.get(filename)
+        img = mmcv.imfrombytes(img_bytes,
+                               flag=self.color_type,
+                               backend=self.imdecode_backend)
+        if self.to_float32:
+            img = img.astype(np.float32)
+
+        results['filename'] = filename
+        results['ori_filename'] = results['img_info']['filename']
+        # Add PE to channel 4
+        if self.USEPE:
+            pe_depth = self.load_pe(results)
+            img = self.concat_pe_rgb(pe_depth,img)
+            if self.USE_DYNAMIC_PE:
+                pe_depth_comput = self.load_pe_comput(results)
+                img = self.concat_pe_rgb(pe_depth_comput,img)
+                if 'CAMERA_01' in filename:
+                    h = 1.56
+                elif 'CAMERA_05' in filename:
+                    h = 1.57
+                elif 'CAMERA_06' in filename:
+                    h = 1.53
+                elif 'CAMERA_09' in filename:
+                    h = 1.53 
+                results['height'] = h
+                results['test'] = 0
+        results['img'] = img
+        results['img_shape'] = img.shape
+        results['ori_shape'] = img.shape
+        # Set initial values for default meta_keys
+        results['pad_shape'] = img.shape
+        results['scale_factor'] = 1.0
+        num_channels = 1 if len(img.shape) < 3 else img.shape[2]
+        results['img_norm_cfg'] = dict(mean=np.zeros(num_channels,
+                                                     dtype=np.float32),
+                                       std=np.ones(num_channels,
+                                                   dtype=np.float32),
+                                       to_rgb=False)
+        # print('img: ',img.shape)
+        return results
+
+    def __repr__(self):
+        repr_str = self.__class__.__name__
+        repr_str += f'(to_float32={self.to_float32},'
+        repr_str += f"color_type='{self.color_type}',"
+        repr_str += f"imdecode_backend='{self.imdecode_backend}')"
+        return repr_str
+
+
+
+@PIPELINES.register_module()
+class LoadDDADCamIntrinsic(object):
+    """Load KITTI intrinsic
+    """
+    def __call__(self, results):
+        """Call function to load multiple types annotations.
+
+        Args:
+            results (dict): Result dict from :obj:`depth.CustomDataset`.
+
+        Returns:
+            dict: The dict contains loaded depth estimation annotations.
+        """
+
+        # raw input
+        date = results['filename'].split('/')[-2]
+        results['cam_intrinsic'] = results['cam_intrinsic_dict'][date]
+        
+        return results
+
+
+    def __repr__(self):
+        repr_str = self.__class__.__name__
         return repr_str

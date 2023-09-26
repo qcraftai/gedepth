@@ -35,6 +35,7 @@ class DepthEncoderDecoder(BaseDepther):
                  test_cfg=None,
                  pretrained=None,
                  init_cfg=None,
+                 depth_scale = 200,
                  ):
         super(DepthEncoderDecoder, self).__init__(init_cfg)
         if pretrained is not None:
@@ -45,6 +46,7 @@ class DepthEncoderDecoder(BaseDepther):
         self._init_decode_head(decode_head)
         self.pe_mask_neck_FLAGS = False
         self.dynamic_pe_neck_FLAGS = False
+        self.depth_scale = depth_scale
 
 
         if neck is not None:
@@ -83,11 +85,18 @@ class DepthEncoderDecoder(BaseDepther):
         pe_slope_k = torch.sum(pe_slope_k * self.indices, dim=1)
         pe_slope_k = pe_slope_k.unsqueeze(1)
         pe_slope_k = torch.tan(torch.deg2rad(pe_slope_k))
-        a = -1.65/(pe_img_comput+1e-8)
-        pe_offset = -1.65/((a-pe_slope_k)+1e-8)
+        if 'height' in kwargs:
+            if 'test' in kwargs:
+                h = kwargs['height'][0].unsqueeze(1).unsqueeze(2).unsqueeze(3)
+            else:
+                h = kwargs['height'].unsqueeze(1).unsqueeze(2).unsqueeze(3)
+        else:
+            h = 1.65
+        a = -h/(pe_img_comput+1e-8)
+        pe_offset = -h/((a-pe_slope_k)+1e-8)
         pe_offset_mask = pe_offset.clone()
         pe_offset_mask[pe_offset_mask<0] = 0
-        pe_offset_mask[pe_offset_mask>200] = 0
+        pe_offset_mask[pe_offset_mask>self.depth_scale] = 0
         pe_offset_mask[pe_offset_mask>0] = 1
         pe_mask = ((pe_offset*pe_offset_mask))*y
         return pe_mask,pe_slope_k_for_loss

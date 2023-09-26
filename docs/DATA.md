@@ -38,3 +38,14 @@ Finally, preprocessing the data to generate Ground-Embedding and Ground-Slope:
 $ cd GEDepth
 $ python tools/preprocess_data_kitti.py
 ```
+
+### **DDAD**
+
+Download the offical dataset from this [link](https://github.com/TRI-ML/DDAD).
+
+Finally, preprocessing the data to generate Ground-Embedding and Ground-Slope:
+
+```shell
+$ cd GEDepth
+$ python tools/preprocess_data_ddad.py
+```
