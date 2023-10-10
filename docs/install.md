@@ -7,21 +7,21 @@
 - [MMCV](https://mmcv.readthedocs.io/en/latest/#installation)
 
 ## Installation
-We ran experiments with PyTorch 1.8.0, CUDA 11.1, Python 3.7, and Ubuntu 20.04. Other settings that satisfact the requirement would work.
+We run experiments with PyTorch 1.8.0, CUDA 11.1, Python 3.7, and Ubuntu 20.04. 
 
-Use Anaconda to create a conda environment:
+Use Anaconda to create conda environment:
 
 ```shell
 conda create -n GE python=3.7
 conda activate GE
 ```
 
-Install Pytorch:
+Install PyTorch:
 ```shell
 conda install pytorch==1.8.0 torchvision==0.9.0 torchaudio==0.8.0 cudatoolkit=11.1 -c pytorch -c conda-forge
 ```
 
-Then, install MMCV and install our toolbox:
+Install MMCV and our toolbox:
 ```shell
 pip install mmcv-full==1.3.13 -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.8.0/index.html
 
@@ -30,7 +30,7 @@ cd GEDepth
 pip install -e .
 ```
 
-If training, you should install the tensorboard:
+For training, install TensorBoard:
 ```shell
 pip install future tensorboard
 ```
