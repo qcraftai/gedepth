@@ -21,7 +21,7 @@ Please follow the instructions in [RUN](docs/RUN.md).
 
 ### Main Results
 
-DepthFormer is used here as the baseline to exemplify the improvement by the proposed GEDepth. Please refer to the paper for more results, in particular, on the generalization enhancement. 
+DepthFormer is used in this repo as the baseline to exemplify the improvement by the proposed GEDepth. Please refer to the paper for more results, in particular, on the generalization enhancement. 
 
 * KITTI
 
