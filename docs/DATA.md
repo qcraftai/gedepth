@@ -1,13 +1,13 @@
 ## Prepare datasets
 
 It is recommended to symlink the dataset root to `$MONOCULAR-DEPTH-ESTIMATION-TOOLBOX/data`.
-If your folder structure is different, you may need to change the corresponding paths in config files.
+If your directory structure is different, you may need to change the corresponding paths in the config files.
 
 ### **KITTI**
 
-Download the offical dataset from this [link](http://www.cvlibs.net/datasets/kitti/eval_depth.php?benchmark=depth_prediction), including the raw data (about 200G) and fine-grained ground-truth depth maps. 
+Download the offical dataset from this [link](http://www.cvlibs.net/datasets/kitti/eval_depth.php?benchmark=depth_prediction), including the raw data (about 200G) and the fine-grained ground-truth depth maps. 
 
-Then, unzip the files into data/kitti. Remember to organizing the directory structure following instructions (Only need a few cut operations). Copy split files (whose names are started with *kitti*) in splits folder into data/kitti. Here, We utilize eigen splits following other supervised methods. The data folders structure is as follows：
+Then, unzip the files into data/kitti. Remember to organize the directory structure following instructions (only need a few cut operations), and copy split files (names started with *kitti*) in splits folder into data/kitti. Here, We use eigen splits following the previous methods. The data directory structure is as follows：
 
 ```none
 GEDepth
@@ -32,7 +32,7 @@ GEDepth
 
 ```
 
-Finally, preprocessing the data to generate Ground-Embedding and Ground-Slope:
+Finally, pre-process the data to pre-compute the ground embedding and ground slope:
 
 ```shell
 $ cd GEDepth
@@ -43,7 +43,7 @@ $ python tools/preprocess_data_kitti.py
 
 Download the offical dataset from this [link](https://github.com/TRI-ML/DDAD).
 
-Finally, preprocessing the data to generate Ground-Embedding and Ground-Slope:
+Finally, pre-process the data to pre-compute the ground embedding and ground slope:
 
 ```shell
 $ cd GEDepth
