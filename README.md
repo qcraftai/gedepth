@@ -36,8 +36,8 @@ DepthFormer is used in this repo as the baseline to exemplify the improvement by
 | Model |  Abs Rel | Sq Rel |  RMSE | Checkpoint | 
 | ------| -----| ------- | ------ | -------------| 
 |Baseline | 0.152| 2.230| 11.051| [[Link]](https://github.com/zhyever/Monocular-Depth-Estimation-Toolbox) |
-| GEDepth-Vanilla | 0.149 | 2.121	| 10.790| [[Google Drive]](https://drive.google.com/drive/folders/1XQRl7AtSBBIPoXtZOh87M_LG0iAJPDl_?usp=sharing) [[Baidu Cloud]](https://pan.baidu.com/s/1bzFoxx_uFrcmx3uUNc03HQ?pwd=rjt1 )
-| GEDepth-Adaptive| 0.145 | 2.119| 10.596|[[Google Drive]](https://drive.google.com/drive/folders/1XQRl7AtSBBIPoXtZOh87M_LG0iAJPDl_?usp=sharing) [[Baidu Cloud]](https://pan.baidu.com/s/1bzFoxx_uFrcmx3uUNc03HQ?pwd=rjt1 )
+| GEDepth-Vanilla | 0.147 | 2.155	| 10.784| [[Google Drive]](https://drive.google.com/drive/folders/1XQRl7AtSBBIPoXtZOh87M_LG0iAJPDl_?usp=sharing) [[Baidu Cloud]](https://pan.baidu.com/s/1bzFoxx_uFrcmx3uUNc03HQ?pwd=rjt1 )
+| GEDepth-Adaptive| 0.145 | 2.146| 10.672|[[Google Drive]](https://drive.google.com/drive/folders/1XQRl7AtSBBIPoXtZOh87M_LG0iAJPDl_?usp=sharing) [[Baidu Cloud]](https://pan.baidu.com/s/1bzFoxx_uFrcmx3uUNc03HQ?pwd=rjt1 )
 
 ## Citation
  Please cite the following paper if this repo helps your research:
