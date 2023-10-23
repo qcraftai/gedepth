@@ -5,7 +5,7 @@
 
 [Xiaodong Yang](https://xiaodongyang.org/), [Zhuang Ma](), [Zhiyu Ji](https://github.com/RobinhoodKi), [Zhe Ren]() <br>
 GEDepth: Ground Embedding for Monocular Depth Estimation, ICCV 2023 <br>
-[[Paper]](https://arxiv.org/pdf/2309.09975.pdf) [[Poster]()] 
+[[Paper]](https://arxiv.org/pdf/2309.09975.pdf) [[Poster](docs/poster.pdf)] 
 
 ## Get Started
 ### Installation
